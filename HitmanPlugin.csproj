@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>HitmanPlugin</AssemblyName>
+    <RootNamespace>HitmanPlugin</RootNamespace>
+    <LibrariesDir>C:\Users\Quinn\Libraries\</LibrariesDir>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Version>1.0.0</Version>
+    <DebugType>none</DebugType>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Rocket.API"><HintPath>$(LibrariesDir)Rocket.API.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Rocket.Core"><HintPath>$(LibrariesDir)Rocket.Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Rocket.Unturned"><HintPath>$(LibrariesDir)Rocket.Unturned.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp"><HintPath>$(LibrariesDir)Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(LibrariesDir)UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(LibrariesDir)UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="com.rlabrecque.steamworks.net"><HintPath>$(LibrariesDir)com.rlabrecque.steamworks.net.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="SDG.NetTransport"><HintPath>C:\Users\Quinn\.nuget\packages\restoremonarchy.unturnedredist\3.26.3.13\lib\net48\SDG.NetTransport.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="LiteDB"><HintPath>$(LibrariesDir)LiteDB.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="MySql.Data"><HintPath>$(LibrariesDir)MySql.Data.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+</Project>
