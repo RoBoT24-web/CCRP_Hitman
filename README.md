@@ -1,12 +1,13 @@
 ## Features
 
+- Mod: https://steamcommunity.com/sharedfiles/filedetails/?id=3821700895
 - Place hits with `/hit <player> <bounty>`; the bounty is deducted up front.
 - One active hit per player at a time.
 - Claim by killing a target. Permitted killers are paid the bounty.
 - Hits persist across disconnects and restarts and expire after a configurable time, with optional refunds.
 - LiteDB or MySQL storage.
 - Economy through AdvancedEconomy, with Uconomy as a fallback (both detected at runtime; neither is a hard dependency).
-- UI list of the top 10 targets by bounty, shown only to players with `hitman.ui`.
+- UI list of the top 10 targets by bounty, shown only to players with `hitman.ui`. 
 
 ## Commands
 
