@@ -30,6 +30,7 @@ Admins (including Blue Hammer) can still run `/hit` and `/hitui`, since Rocket l
 ## How it works
 
 - **Placing:** `/hit` validates the syntax, `MinimumBounty`, that the target is online, `CanPlaceOnSelf`, `hit.exempt`, that the target has no existing hit, and that you can afford it. The bounty is withdrawn, then the hit is saved. If saving fails, the withdrawal is refunded.
+- **Placement cooldown:** `PlacementCooldownInSeconds` limits each player to one successful hit placement per configured interval. It starts only after the hit is saved, resets when the plugin restarts, and `0` disables it.
 - **Claiming:** when a player with `hitman` kills a listed target, they receive the bounty and the hit is removed. Suicides, kills by non-players, and kills by the player who placed the hit do not count and the hit stays.
 - **Expiry:** hits older than `DurationInDays` are removed every `CheckIntervalInSeconds`. If `RefundExpired` is on, the bounty is refunded to the player who placed it. Expiry is based on real time, so hits on offline players keep counting down.
 - **Offline players:** hits stay active when the target disconnects, but you can only place new hits on online players.
@@ -46,6 +47,7 @@ Generated in the plugin's folder on first load.
 | `HitsConfiguration.CheckIntervalInSeconds` | `30` | How often expiry is checked. |
 | `HitsConfiguration.CanPlaceOnSelf` | `false` | Allow hits on yourself. |
 | `HitsConfiguration.MinimumBounty` | `100` | Lowest allowed bounty. |
+| `HitsConfiguration.PlacementCooldownInSeconds` | `0` | Minimum time between successful hit placements by the same player; `0` disables the cooldown. |
 | `HitsConfiguration.RefundExpired` | `false` | Refund the placer when a hit expires. |
 | `HitsConfiguration.Placed` / `Completed` / `Expired` | see file | Toggles for announcing and for telling the target or hirer. |
 | `UIConfiguration.AutoDisplay` | `true` | Show the UI to `hitman.ui` players when they join. |

@@ -38,6 +38,8 @@ namespace Hitman
         private readonly object sync = new object();
         private readonly List<Hit> hits = new List<Hit>();
         private readonly HashSet<ulong> pendingTargets = new HashSet<ulong>();
+        private readonly HashSet<ulong> pendingPlacers = new HashSet<ulong>();
+        private readonly Dictionary<ulong, DateTime> lastHitPlacements = new Dictionary<ulong, DateTime>();
 
         public override TranslationList DefaultTranslations => new TranslationList
         {
@@ -58,6 +60,8 @@ namespace Hitman
             { "InvalidTarget", "{TargetPlayerName} was not found." },
             { "HitSyntax", "Correct usage: /hit <player> <bounty (number)>" },
             { "HitAlreadyExists", "{TargetPlayerName} already has a hit on their head." },
+            { "HitPlacementCooldown", "You must wait {CooldownSeconds} second(s) before placing another hit." },
+            { "HitPlacementInProgress", "You already have a hit placement in progress." },
             { "InvalidBalance", "You do not have enough balance to place this bounty." },
             { "UINoPermission", "You do not have permission to use the UI" }
         };
@@ -158,12 +162,30 @@ namespace Hitman
             var hirerName = hirer.CharacterName;
             var targetName = target.CharacterName;
             var hitsConfig = Configuration.Instance.HitsConfiguration;
+            var cooldownSeconds = Math.Max(0, hitsConfig.PlacementCooldownInSeconds);
 
-            // Reserve the target so only one hit exists (or is being placed) per player.
             lock (sync)
             {
+                if (cooldownSeconds > 0 &&
+                    lastHitPlacements.TryGetValue(hirerId, out var lastPlacement))
+                {
+                    var remaining = TimeSpan.FromSeconds(cooldownSeconds) - (DateTime.UtcNow - lastPlacement);
+                    if (remaining > TimeSpan.Zero)
+                    {
+                        Tell(hirer, Format("HitPlacementCooldown", "CooldownSeconds", (int)Math.Ceiling(remaining.TotalSeconds)));
+                        return;
+                    }
+                }
+
+                if (!pendingPlacers.Add(hirerId))
+                {
+                    Tell(hirer, Format("HitPlacementInProgress"));
+                    return;
+                }
+
                 if (hits.Any(h => h.TargetId == targetId) || !pendingTargets.Add(targetId))
                 {
+                    pendingPlacers.Remove(hirerId);
                     Tell(hirer, Format("HitAlreadyExists", "TargetPlayerName", targetName));
                     return;
                 }
@@ -210,7 +232,12 @@ namespace Hitman
                         throw;
                     }
 
-                    lock (sync) hits.Add(hit);
+                    lock (sync)
+                    {
+                        hits.Add(hit);
+                        if (cooldownSeconds > 0)
+                            lastHitPlacements[hirerId] = DateTime.UtcNow;
+                    }
 
                     TaskDispatcher.QueueOnMainThread(() =>
                     {
@@ -229,7 +256,11 @@ namespace Hitman
                 }
                 finally
                 {
-                    lock (sync) pendingTargets.Remove(targetId);
+                    lock (sync)
+                    {
+                        pendingTargets.Remove(targetId);
+                        pendingPlacers.Remove(hirerId);
+                    }
                 }
             });
         }

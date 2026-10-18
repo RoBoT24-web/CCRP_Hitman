@@ -33,6 +33,7 @@ namespace Hitman
                 CheckIntervalInSeconds = 30,
                 CanPlaceOnSelf = false,
                 MinimumBounty = 100,
+                PlacementCooldownInSeconds = 0,
                 RefundExpired = false,
                 Placed = new HitPlacedConfiguration { Announce = true, TellTarget = true },
                 Completed = new HitCompletedConfiguration { Announce = true, TellTarget = true },
@@ -63,6 +64,7 @@ namespace Hitman
         public int CheckIntervalInSeconds { get; set; }
         public bool CanPlaceOnSelf { get; set; }
         public decimal MinimumBounty { get; set; }
+        public int PlacementCooldownInSeconds { get; set; }
         public bool RefundExpired { get; set; }
         public HitPlacedConfiguration Placed { get; set; }
         public HitCompletedConfiguration Completed { get; set; }
