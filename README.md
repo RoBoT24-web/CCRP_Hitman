@@ -48,11 +48,18 @@ Generated in the plugin's folder on first load.
 | `HitsConfiguration.CanPlaceOnSelf` | `false` | Allow hits on yourself. |
 | `HitsConfiguration.MinimumBounty` | `100` | Lowest allowed bounty. |
 | `HitsConfiguration.PlacementCooldownInSeconds` | `0` | Minimum time between successful hit placements by the same player; `0` disables the cooldown. |
+| `HitsConfiguration.TargetCooldownInMinutes` | `30` | After a hit on a player is completed, no new hit can be placed on them for this long; `0` disables it. Resets on restart. |
 | `HitsConfiguration.RefundExpired` | `false` | Refund the placer when a hit expires. |
 | `HitsConfiguration.Placed` / `Completed` / `Expired` | see file | Toggles for announcing and for telling the target or hirer. |
 | `UIConfiguration.AutoDisplay` | `true` | Show the UI to `hitman.ui` players when they join. |
 | `UIConfiguration.MaxHitsShown` | `10` | Rows shown, capped at 10. |
 | `UIConfiguration.EffectGuid` | `48d317b1241a49159dd63f0d0eb0ad2f` | GUID of the HitUI effect. |
+| `DiscordConfiguration.Enabled` | `false` | Send hit events to a Discord webhook. |
+| `DiscordConfiguration.WebhookUrl` | empty | Discord webhook URL. |
+| `DiscordConfiguration.Username` / `AvatarUrl` / `ServerName` | `Hitman` / empty / empty | Webhook display name, avatar, and embed footer text. |
+| `DiscordConfiguration.LogPlaced` / `LogCompleted` / `LogExpired` | `true` | Toggle each event type. |
+
+Discord embeds include the players (with Steam profile links and IDs), bounty, timestamps, hit ID and active hit count. Completed hits also show cause, limb, distance, hit age, every hirer behind the claim and payout status; expired hits show how long they lasted and whether they were refunded. Existing config files need the new `DiscordConfiguration` block added manually.
 
 Messages are editable in the plugin's translation file. Supported placeholders include `{Bounty:0.00}`, `{TargetPlayerName}`, `{HirerPlayerName}`, `{KillerPlayerName}`, `{PlayerName}` and `{MinimumBounty}`.
 

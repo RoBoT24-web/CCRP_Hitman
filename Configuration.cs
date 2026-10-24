@@ -14,9 +14,21 @@ namespace Hitman
         public MySqlConfiguration MySqlConfiguration { get; set; }
         public HitsConfiguration HitsConfiguration { get; set; }
         public UIConfiguration UIConfiguration { get; set; }
+        public DiscordConfiguration DiscordConfiguration { get; set; }
 
         public void LoadDefaults()
         {
+            DiscordConfiguration = new DiscordConfiguration
+            {
+                Enabled = false,
+                WebhookUrl = string.Empty,
+                Username = "Hitman",
+                AvatarUrl = string.Empty,
+                ServerName = string.Empty,
+                LogPlaced = true,
+                LogCompleted = true,
+                LogExpired = true
+            };
             DatabaseType = DatabaseType.LiteDB;
             MySqlConfiguration = new MySqlConfiguration
             {
@@ -34,6 +46,7 @@ namespace Hitman
                 CanPlaceOnSelf = false,
                 MinimumBounty = 100,
                 PlacementCooldownInSeconds = 0,
+                TargetCooldownInMinutes = 30,
                 RefundExpired = false,
                 Placed = new HitPlacedConfiguration { Announce = true, TellTarget = true },
                 Completed = new HitCompletedConfiguration { Announce = true, TellTarget = true },
@@ -65,6 +78,7 @@ namespace Hitman
         public bool CanPlaceOnSelf { get; set; }
         public decimal MinimumBounty { get; set; }
         public int PlacementCooldownInSeconds { get; set; }
+        public int TargetCooldownInMinutes { get; set; }
         public bool RefundExpired { get; set; }
         public HitPlacedConfiguration Placed { get; set; }
         public HitCompletedConfiguration Completed { get; set; }
@@ -87,6 +101,18 @@ namespace Hitman
     {
         public bool TellTarget { get; set; }
         public bool TellHirer { get; set; }
+    }
+
+    public class DiscordConfiguration
+    {
+        public bool Enabled { get; set; }
+        public string WebhookUrl { get; set; }
+        public string Username { get; set; }
+        public string AvatarUrl { get; set; }
+        public string ServerName { get; set; }
+        public bool LogPlaced { get; set; }
+        public bool LogCompleted { get; set; }
+        public bool LogExpired { get; set; }
     }
 
     public class UIConfiguration

@@ -33,6 +33,7 @@ namespace Hitman
         public static HitmanPlugin Instance { get; private set; }
 
         public HitUIService UI { get; private set; }
+        public DiscordWebhook Discord { get; private set; }
 
         private IHitRepository repository;
         private readonly object sync = new object();
@@ -40,6 +41,7 @@ namespace Hitman
         private readonly HashSet<ulong> pendingTargets = new HashSet<ulong>();
         private readonly HashSet<ulong> pendingPlacers = new HashSet<ulong>();
         private readonly Dictionary<ulong, DateTime> lastHitPlacements = new Dictionary<ulong, DateTime>();
+        private readonly Dictionary<ulong, DateTime> targetProtectionUntil = new Dictionary<ulong, DateTime>();
 
         public override TranslationList DefaultTranslations => new TranslationList
         {
@@ -61,6 +63,7 @@ namespace Hitman
             { "HitSyntax", "Correct usage: /hit <player> <bounty (number)>" },
             { "HitAlreadyExists", "{TargetPlayerName} already has a hit on their head." },
             { "HitPlacementCooldown", "You must wait {CooldownSeconds} second(s) before placing another hit." },
+            { "HitTargetProtected", "{TargetPlayerName} was recently killed by a hitman and cannot have a hit placed on them for {CooldownMinutes} more minute(s)." },
             { "HitPlacementInProgress", "You already have a hit placement in progress." },
             { "InvalidBalance", "You do not have enough balance to place this bounty." },
             { "UINoPermission", "You do not have permission to use the UI" }
@@ -90,6 +93,7 @@ namespace Hitman
                 return;
             }
 
+            Discord = new DiscordWebhook(Configuration.Instance.DiscordConfiguration);
             UI = new HitUIService(this);
 
             U.Events.OnPlayerConnected += OnPlayerConnected;
@@ -163,6 +167,7 @@ namespace Hitman
             var targetName = target.CharacterName;
             var hitsConfig = Configuration.Instance.HitsConfiguration;
             var cooldownSeconds = Math.Max(0, hitsConfig.PlacementCooldownInSeconds);
+            var playersOnline = Provider.clients.Count;
 
             lock (sync)
             {
@@ -175,6 +180,17 @@ namespace Hitman
                         Tell(hirer, Format("HitPlacementCooldown", "CooldownSeconds", (int)Math.Ceiling(remaining.TotalSeconds)));
                         return;
                     }
+                }
+
+                if (targetProtectionUntil.TryGetValue(targetId, out var protectedUntil))
+                {
+                    var protectedFor = protectedUntil - DateTime.UtcNow;
+                    if (protectedFor > TimeSpan.Zero)
+                    {
+                        Tell(hirer, Format("HitTargetProtected", "TargetPlayerName", targetName, "CooldownMinutes", (int)Math.Ceiling(protectedFor.TotalMinutes)));
+                        return;
+                    }
+                    targetProtectionUntil.Remove(targetId);
                 }
 
                 if (!pendingPlacers.Add(hirerId))
@@ -232,12 +248,15 @@ namespace Hitman
                         throw;
                     }
 
+                    int activeHits;
                     lock (sync)
                     {
                         hits.Add(hit);
+                        activeHits = hits.Count;
                         if (cooldownSeconds > 0)
                             lastHitPlacements[hirerId] = DateTime.UtcNow;
                     }
+                    Discord.HitPlaced(hit, activeHits, playersOnline);
 
                     TaskDispatcher.QueueOnMainThread(() =>
                     {
@@ -280,11 +299,17 @@ namespace Hitman
             var targetId = player.CSteamID.m_SteamID;
             var killerId = murderer.m_SteamID;
             List<Hit> claimed;
+            DateTime? protectedUntil = null;
             lock (sync)
             {
                 claimed = hits.Where(h => h.TargetId == targetId && h.HirerId != killerId).ToList();
                 if (claimed.Count == 0) return;
                 hits.RemoveAll(h => claimed.Contains(h));
+                if (hitsConfig.TargetCooldownInMinutes > 0)
+                {
+                    protectedUntil = DateTime.UtcNow.AddMinutes(hitsConfig.TargetCooldownInMinutes);
+                    targetProtectionUntil[targetId] = protectedUntil.Value;
+                }
             }
 
             var total = claimed.Sum(h => h.Bounty);
@@ -300,8 +325,16 @@ namespace Hitman
             UI?.RefreshAll();
 
             var killerIdString = killer.Id;
+            var causeName = cause.ToString();
+            var limbName = limb.ToString();
+            double? distance = null;
+            try { distance = Vector3.Distance(killer.Position, player.Position); } catch { }
+            int remainingHits;
+            lock (sync) remainingHits = hits.Count;
+
             Task.Run(() =>
             {
+                var paid = false;
                 try
                 {
                     repository.Remove(claimed.Select(h => h.Id));
@@ -309,12 +342,16 @@ namespace Hitman
                     if (economy == null)
                         Logger.LogError("No economy plugin loaded; could not pay bounty of " + total + " to " + killerIdString);
                     else
+                    {
                         economy.Add(killerIdString, total);
+                        paid = true;
+                    }
                 }
                 catch (Exception ex)
                 {
                     Logger.LogException(ex, "Failed to complete hit payout.");
                 }
+                Discord.HitCompleted(killerName, killerId, targetName, targetId, claimed, total, causeName, limbName, distance, remainingHits, paid, protectedUntil);
             });
         }
 
@@ -344,23 +381,29 @@ namespace Hitman
 
             Task.Run(() =>
             {
+                var refunded = false;
                 try
                 {
                     repository.Remove(expired.Select(h => h.Id));
-                    if (!hitsConfig.RefundExpired) return;
-                    var economy = EconomyResolver.Resolve();
-                    if (economy == null)
+                    if (hitsConfig.RefundExpired)
                     {
-                        Logger.LogError("No economy plugin loaded; could not refund expired hits.");
-                        return;
+                        var economy = EconomyResolver.Resolve();
+                        if (economy == null)
+                            Logger.LogError("No economy plugin loaded; could not refund expired hits.");
+                        else
+                        {
+                            foreach (var hit in expired)
+                                economy.Add(hit.HirerId.ToString(), hit.Bounty);
+                            refunded = true;
+                        }
                     }
-                    foreach (var hit in expired)
-                        economy.Add(hit.HirerId.ToString(), hit.Bounty);
                 }
                 catch (Exception ex)
                 {
                     Logger.LogException(ex, "Failed to process expired hits.");
                 }
+                foreach (var hit in expired)
+                    Discord.HitExpired(hit, refunded);
             });
         }
 
